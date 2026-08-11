@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petar Payment</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            /* ป้องกันการ select text เวลาคลิกรัวๆ */
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+        
+        /* -------------------------------------- */
+        /* CSS สำหรับเอฟเฟกต์ แมงมุม & ใยแมงมุม */
+        /* -------------------------------------- */
+        .spider-container {
+            position: fixed;
+            pointer-events: none; /* ไม่ให้ขัดขวางการคลิกปุ่มด้านล่าง */
+            z-index: 0; /* ให้อยู่หลังการ์ดกระจก */
+            transform: translate(-50%, -50%);
+            /* แอนิเมชันเด้ง (Bounce) */
+            animation: bounce-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes bounce-in {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* -------------------------------------- */
+        /* สไตล์พื้นฐานของเว็บ (ปรับให้เข้ากับภาพพื้นหลัง) */
+        /* -------------------------------------- */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.2), 
+                        inset 0 2px 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .virtual-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .virtual-card:hover {
+            transform: translateY(-4px);
+        }
+        .virtual-card:active {
+            transform: translateY(2px) scale(0.98);
+        }
+        
+        ::-webkit-scrollbar { width: 0px; }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#2D3748', // สีเทาเข้ม
+                            600: '#1A202C', // สีดำ/เทาเข้มมาก
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex flex-col items-center py-6 px-4 text-brand-600 relative">
+
+    <!-- ภาพพื้นหลังที่กำหนด + Overlay สีเข้มเพื่อให้ใยแมงมุมสีขาวโดดเด่น -->
+    <div class="fixed inset-0 pointer-events-none z-[-2]" style="background-image: url('https://i.postimg.cc/TYHpmV8t/line-oa-chat-260812-061518.jpg'); background-size: cover; background-position: center;"></div>
+    <!-- Overlay ให้ภาพมืดลงนิดหน่อย เพื่อให้ Card และ ใยแมงมุมชัดเจนขึ้น -->
+    <div class="fixed inset-0 pointer-events-none z-[-1] bg-slate-900/40 backdrop-blur-sm"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800/95 backdrop-blur-sm text-white px-6 py-3 rounded-full shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50 flex items-center gap-2 font-medium text-sm border border-gray-600">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 text-green-400">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        คัดลอกเลขบัญชีเรียบร้อย !
+    </div>
+
+    <!-- Container หลัก -->
+    <div class="max-w-[420px] w-full relative z-10 space-y-4 pb-10 mt-4">
+        
+        <!-- Header -->
+        <div class="text-center pt-1 pb-1 relative drop-shadow-md">
+            <h1 class="text-4xl font-bold tracking-tight text-white flex items-center justify-center gap-2 mb-1">
+                Petar
+            </h1>
+            <p class="text-sm font-medium text-white/90 mt-0.5 px-4">เช็คบัญชีก่อนโอน โอนเกินโอนผิดไม่คืนเงินนะครับ</p>
+        </div>
+
+        <!-- ดีไซน์การ์ด Glass -->
+        <div class="glass-card rounded-[32px] p-3 relative z-10 mt-2">
+            
+            <!-- โซนข้อความชื่อบัญชี -->
+            <div class="p-4 pt-4 space-y-5">
+                
+                <div class="text-center space-y-3">
+                    <p class="text-[15px] font-medium leading-relaxed text-brand-600">
+                        ชื่อบัญชี <span class="text-brand-600 font-bold bg-white px-3 py-1 rounded-lg border border-gray-200 relative inline-block shadow-sm text-lg mx-1">
+                            Supatcha S.
+                        </span> เท่านั้นครับ!!
+                    </p>
+                </div>
+
+                <!-- Divider -->
+                <div class="flex items-center gap-3 py-2">
+                    <div class="h-px bg-gray-300 flex-1"></div>
+                    <span class="text-[12px] font-bold text-gray-500 tracking-wider uppercase">ช่องทางชำระเงิน</span>
+                    <div class="h-px bg-gray-300 flex-1"></div>
+                </div>
+
+                <!-- โซนบัญชีธนาคาร -->
+                <div class="space-y-4">
+                    
+                    <!-- บัตรกสิกรไทย (KBank) -->
+                    <div class="virtual-card relative bg-gradient-to-br from-[#00A950] to-[#007D3B] rounded-[24px] p-5 shadow-lg shadow-green-900/20 overflow-hidden cursor-pointer border border-green-400/30" onclick="copyText('212-1-41844-7', this, 'kbank')">
+                        <svg class="absolute -right-6 -bottom-6 w-32 h-32 text-white opacity-10 transform -rotate-12 pointer-events-none" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                        
+                        <div class="relative z-10 flex flex-col gap-4">
+                            <div class="flex justify-between items-center">
+                                <div class="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20">
+                                    <span class="text-white font-bold text-sm tracking-wider">KBank</span>
+                                </div>
+                                <button class="kbank-btn bg-white text-green-700 text-[12px] font-bold px-4 py-2 rounded-full flex items-center gap-1.5 shadow-sm pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                    คัดลอก
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <div class="text-green-50 text-[12px] font-medium mb-1 drop-shadow-sm">กสิกรไทย</div>
+                                <div class="text-white font-bold text-[22px] tracking-widest leading-none drop-shadow-md">212-1-41844-7</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- บัตร TrueMoney -->
+                    <div class="virtual-card relative bg-gradient-to-br from-[#FF8200] to-[#E57500] rounded-[24px] p-5 shadow-lg shadow-orange-900/15 overflow-hidden cursor-pointer border border-white/30" onclick="copyText('0931982812', this, 'true')">
+                        <svg class="absolute -left-6 -top-6 w-32 h-32 text-white opacity-10 transform rotate-12 pointer-events-none" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+
+                        <div class="relative z-10 flex flex-col gap-4">
+                            <div class="flex justify-between items-center">
+                                <div class="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20">
+                                    <span class="text-white font-bold text-sm tracking-wider">TrueMoney</span>
+                                </div>
+                                <button class="true-btn bg-white text-orange-600 text-[12px] font-bold px-4 py-2 rounded-full flex items-center gap-1.5 shadow-sm pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                    คัดลอก
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <div class="text-orange-50 text-[12px] font-medium mb-1 drop-shadow-sm">วอเล็ต</div>
+                                <div class="text-white font-bold text-[22px] tracking-widest leading-none drop-shadow-md">0931982812</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Note 1: วอเล็ตหลังจากวันที่ 15 -->
+                    <div class="bg-white/80 border border-gray-200 rounded-2xl p-3 flex items-start gap-3 text-left shadow-sm">
+                        <div class="bg-orange-100 p-1.5 rounded-full text-orange-600 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="text-[13px] leading-relaxed text-gray-700 font-medium pt-0.5">
+                            วอเล็ตหลังจากวันที่ 15 ของเดือนนั้น <span class="text-orange-600 font-bold">+2 ทุกยอด</span>
+                        </div>
+                    </div>
+
+                    <!-- Note 2: ตัวแทนโน็ตสลิป -->
+                    <div class="bg-white/80 border border-gray-200 rounded-2xl p-3 flex items-start gap-3 text-left shadow-sm">
+                        <div class="bg-blue-100 p-1.5 rounded-full text-blue-600 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                            </svg>
+                        </div>
+                        <div class="text-[13px] leading-relaxed text-gray-700 font-medium pt-0.5">
+                            ตัวแทน <span class="font-bold text-blue-600">โน๊ตสลิป</span> ทุกครั้ง<br>
+                            <span class="text-gray-500 text-[12px] font-normal">ตัวแทนร้าน @896irvhw</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- สคริปต์การทำงาน (คัดลอก + สร้างใยแมงมุม) -->
+    <!-- ---------------------------------------------------- -->
+    <script>
+        // ฟังก์ชันคัดลอกข้อความ (ทำงานเหมือนเดิม)
+        function copyText(text, containerElement, type) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast();
+
+                const buttonElement = containerElement.querySelector(type === 'kbank' ? '.kbank-btn' : '.true-btn');
+                const originalHtml = buttonElement.innerHTML;
+                const origTextColor = type === 'kbank' ? 'text-green-700' : 'text-orange-600';
+                
+                buttonElement.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    สำเร็จ
+                `;
+                buttonElement.classList.replace('bg-white', 'bg-white/30');
+                buttonElement.classList.replace(origTextColor, 'text-white');
+                
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalHtml;
+                    buttonElement.classList.replace('bg-white/30', 'bg-white');
+                    buttonElement.classList.replace('text-white', origTextColor);
+                }, 2000);
+
+            } catch (err) {
+                console.error('ไม่สามารถคัดลอกได้:', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-4');
+            }, 2500);
+        }
+
+        // --------------------------------------------------
+        // ฟังก์ชันสร้างใยแมงมุมและแมงมุมสุดน่ารัก (SVG & CSS)
+        // --------------------------------------------------
+        function createSpiderWeb(x, y) {
+            const container = document.createElement('div');
+            container.className = 'spider-container';
+            container.style.left = `${x}px`;
+            container.style.top = `${y}px`;
+
+            // วาดใยแมงมุม (สีขาวโปร่งแสง) + แมงมุม (การ์ตูน) ด้วย SVG
+            // การใช้ SVG แบบ Inline ทำให้ไม่ต้องโหลดไฟล์รูปภาพเพิ่ม
+            container.innerHTML = `
+                <div class="relative w-32 h-32 flex items-center justify-center">
+                    <!-- ใยแมงมุม (Spiderweb) -->
+                    <svg viewBox="0 0 100 100" class="absolute w-full h-full text-white/50 drop-shadow-md" stroke="currentColor" stroke-width="1.5" fill="none">
+                        <!-- เส้นรัศมี -->
+                        <line x1="50" y1="0" x2="50" y2="100"/>
+                        <line x1="0" y1="50" x2="100" y2="50"/>
+                        <line x1="15" y1="15" x2="85" y2="85"/>
+                        <line x1="15" y1="85" x2="85" y2="15"/>
+                        <!-- เส้นใยวงรอบนอก -->
+                        <polygon points="50,15 75,25 85,50 75,75 50,85 25,75 15,50 25,25"/>
+                        <!-- เส้นใยวงกลาง -->
+                        <polygon points="50,30 65,35 70,50 65,65 50,70 35,65 30,50 35,35"/>
+                        <!-- เส้นใยวงใน -->
+                        <polygon points="50,42 56,44 58,50 56,56 50,58 44,56 42,50 44,44"/>
+                    </svg>
+
+                    <!-- ตัวแมงมุมการ์ตูนน่ารัก (Spider) -->
+                    <svg viewBox="0 0 100 100" class="absolute w-12 h-12 text-slate-800 drop-shadow-lg transform rotate-[15deg]" fill="currentColor">
+                        <!-- ขาซ้าย -->
+                        <path d="M40,55 Q10,30 20,20" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <path d="M40,60 Q10,50 15,40" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <path d="M40,65 Q10,70 15,80" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <path d="M40,70 Q20,90 30,95" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <!-- ขาขวา -->
+                        <path d="M60,55 Q90,30 80,20" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <path d="M60,60 Q90,50 85,40" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <path d="M60,65 Q90,70 85,80" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <path d="M60,70 Q80,90 70,95" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        
+                        <!-- ลำตัว (ก้น) -->
+                        <ellipse cx="50" cy="70" rx="18" ry="22"/>
+                        <!-- หัว -->
+                        <circle cx="50" cy="45" r="14"/>
+                        
+                        <!-- ตาน่ารัก -->
+                        <circle cx="45" cy="42" r="3" fill="white"/>
+                        <circle cx="55" cy="42" r="3" fill="white"/>
+                        <!-- ประกายตา -->
+                        <circle cx="46" cy="41" r="1" fill="black"/>
+                        <circle cx="54" cy="41" r="1" fill="black"/>
+                        <!-- แก้มชมพู -->
+                        <ellipse cx="40" cy="48" rx="2" ry="1.5" fill="#ff9999" opacity="0.8"/>
+                        <ellipse cx="60" cy="48" rx="2" ry="1.5" fill="#ff9999" opacity="0.8"/>
+                        <!-- ปากยิ้ม -->
+                        <path d="M47,50 Q50,53 53,50" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                    </svg>
+                </div>
+            `;
+
+            document.body.appendChild(container);
+        }
+
+        // ตรวจจับการแตะ (Touch) หรือ คลิก (Mouse) บนหน้าจอ
+        // ใช้ pointerdown เพื่อให้รองรับทั้งมือถือและคอมพิวเตอร์อย่างสมบูรณ์แบบ
+        document.addEventListener('pointerdown', (e) => {
+            // ป้องกันไม่ให้สร้างใยแมงมุม หากผู้ใช้กำลัง "คลิกเพื่อคัดลอกเลขบัญชี" (การ์ด)
+            if (e.target.closest('.virtual-card')) {
+                return; 
+            }
+
+            // ดึงพิกัดจุดที่คลิก/แตะ
+            const x = e.clientX;
+            const y = e.clientY;
+
+            // สร้างใยแมงมุมตรงจุดที่แตะ
+            createSpiderWeb(x, y);
+        });
+
+    </script>
+</body>
+</html>
