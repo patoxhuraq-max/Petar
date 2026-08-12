@@ -1,0 +1,77 @@
+    <script>
+        document.addEventListener('click', function(event) {
+            // แก้ไขตรงนี้: เอา .virtual-card ออก ให้เช็คแค่ปุ่มกดหลักๆ พอ
+            if (event.target.closest('button')) return;
+
+            const x = event.clientX;
+            const y = event.clientY;
+
+            const cobwebElement = document.createElement('img');
+            cobwebElement.src = 'https://i.postimg.cc/JnVGdMKp/mi-m-ch-x-34-20260812073726.png'; 
+            cobwebElement.className = 'spider-element cobweb';
+            cobwebElement.style.left = `${x}px`;
+            cobwebElement.style.top = `${y}px`;
+
+            const spiderElement = document.createElement('img');
+            spiderElement.src = 'https://i.postimg.cc/DZk8Yn55/mi-m-ch-x-32-20260812073654.png'; 
+            spiderElement.className = 'spider-element spider';
+            spiderElement.style.left = `${x}px`;
+            spiderElement.style.top = `${y}px`;
+
+            document.body.appendChild(cobwebElement);
+            document.body.appendChild(spiderElement);
+
+            setTimeout(() => {
+                cobwebElement.remove();
+                spiderElement.remove();
+            }, 1500);
+        });
+
+        function copyText(text, containerElement, type) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast();
+
+                const buttonElement = containerElement.querySelector(type === 'kbank' ? '.kbank-btn' : '.true-btn');
+                const originalHtml = buttonElement.innerHTML;
+                
+                buttonElement.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    สำเร็จ
+                `;
+                buttonElement.classList.replace('bg-[#1b1b1b]/30', 'bg-[#404040]');
+                buttonElement.classList.replace('text-[#b4b4b4]', 'text-white');
+                
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalHtml;
+                    buttonElement.classList.replace('bg-[#404040]', 'bg-[#1b1b1b]/30');
+                    buttonElement.classList.replace('text-white', 'text-[#b4b4b4]');
+                }, 2000);
+
+            } catch (err) {
+                console.error('ไม่สามารถคัดลอกได้:', err);
+            }
+
+            document.body.removeChild(textArea);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-4');
+            }, 2500);
+        }
+    </script>
